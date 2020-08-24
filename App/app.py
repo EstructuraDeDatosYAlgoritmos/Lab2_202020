@@ -30,7 +30,11 @@
 import config as cf
 import sys
 import csv
-from time import process_time 
+from DataStructures import arraylist as adt
+from time import process_time
+from App.comparation import Comparation
+from App.comparation import cmpfunction
+from Sorting.insertionsort import insertionSort
 
 def loadCSVFile (data_link, data, sep=";"):
     """
@@ -52,22 +56,32 @@ def loadCSVFile (data_link, data, sep=";"):
     t1_start = process_time() #tiempo inicial
     dialect = csv.excel()
     dialect.delimiter = sep
-    
-    data.clear()
 
+    data['elements'].clear()
+    temp = {}
     for link in data_link:
         try:
             with open(link, encoding="utf-8") as csvfile:
                 spamreader = csv.DictReader(csvfile, dialect=dialect)
                 for row in spamreader:
-                    if row['id'] not in data.keys():
-                        data[row['id']] = {}
+                    
+                    if row['id'] not in temp.keys():
+                        temp[row['id']] = {}
                     for detail in row.keys():
-                        data[row['id']][detail] = row[detail]
+                        temp[row['id']][detail] = row[detail]
+            
+            for element in temp.keys():
+                try:
+                    adt.addLast(data, temp.get(element))
+                except:
+                    pass
+
         except:
-            data.clear()
+            data['elements'].clear()
             print("Se presento un error en la carga del archivo")
     
+    del temp
+
     t1_stop = process_time()  #tiempo final
     print("Tiempo de ejecución ",t1_stop-t1_start," segundos")
 
@@ -111,7 +125,18 @@ def printMenu():
     print("2- Contar los elementos de la Lista")
     print("3- Contar elementos filtrados por palabra clave")
     print("4- Encontrar buenas películas de un director")
+    print("5- Crear un ranking a partir de una lista de opciones")
     print("0- Salir")
+
+def printRanking() -> None:
+    """
+    Imprime las categorias para crear un ranking
+    """
+    print("\nCategorias:")
+    print("1- Mas votada")
+    print("2- Menos votada")
+    print("3- Mejor puntuación")
+    print("4- Peor puntuación")
 
 def countElementsFilteredByColumn(criteria, column, data):
     """
@@ -127,14 +152,15 @@ def countElementsFilteredByColumn(criteria, column, data):
         counter :: int
             la cantidad de veces ue aparece un elemento con el criterio definido
     """
-    if len(data)==0:
+    if adt.size(data)==0:
         print("La lista esta vacía")  
         return 0
     else:
         t1_start = process_time() #tiempo inicial
         counter=0 #Cantidad de repeticiones
-        for element in data.keys():
-            if criteria.lower() in data[element][column].lower(): #filtrar por palabra clave 
+        for i in range(1,adt.size(data)):
+            element = adt.getElement(data,i)[column]
+            if criteria.lower() in element.lower(): #filtrar por palabra clave 
                 counter+=1
         t1_stop = process_time() #tiempo final
         print("Tiempo de ejecución ",t1_stop-t1_start," segundos")
@@ -145,16 +171,16 @@ def countElementsByCriteria(data, director):
     Retorna la cantidad de elementos que cumplen con un criterio para una columna dada
     """
 
-    if len(data)==0:
+    if adt.size(data)==0:
         print("La lista esta vacía")  
         return 0
     else:
         t1_start = process_time() #tiempo inicial
         counter = 0  #Cantidad de repeticiones
         average = 0
-        for key in data.keys():
-            vote = float(data[key]['vote_average'])
-            if (data[key]['director_name'] == director)and(vote >= 6): #filtrar por promedio de votos
+        for i in range(1,adt.size(data)):
+            vote = float(adt.getElement(data,i)['vote_average'])
+            if (adt.getElement(data,i)['director_name'] == director)and(vote >= 6): #filtrar por promedio de votos
                 counter += 1
                 average += vote
                 
@@ -182,6 +208,13 @@ def countElementsByCriteria1(moviedetails: list, moviecasting: list, director_na
      resultado = (buenas, promedio)             
      return resultado
 
+def orderElementsByCriteria(data,less):
+    insertionSort(data, less)
+    ranking = []
+    for i in range(1,11):
+        ranking.append(adt.getElement(data, i))
+    return ranking
+
 def main():
     """
     Método principal del programa, se encarga de manejar todos los metodos adicionales creados
@@ -190,26 +223,30 @@ def main():
     Args: None
     Return: None 
     """
-    data = {} #instanciar un diccionario vacio
+    data = adt.newList(cmpfunction)
 
     data_link = [ #contiene los enlaces a los archivos .cvs
         "Data/themoviesdb/AllMoviesDetailsCleaned.csv",
         "Data/themoviesdb/AllMoviesCastingRaw.csv"
     ]
+    categoria = [
+        'vote_count',
+        'vote_average'
+    ]
 
     while True:
         printMenu() #imprimir el menu de opciones en consola
-        inputs =input('Seleccione una opción para continuar\n') #leer opción ingresada
+        inputs = input('Seleccione una opción para continuar\n') #leer opción ingresada
         if len(inputs)>0:
             if int(inputs[0])==1: #opcion 1
                 loadCSVFile(data_link, data) #llamar funcion cargar datos
-                print("Datos cargados, "+str(len(data))+" elementos cargados")
+                print("Datos cargados, "+str(adt.size(data))+" elementos cargados")
             elif int(inputs[0])==2: #opcion 2
-                if len(data)==0: #obtener la longitud de la lista
+                if adt.size(data)==0: #obtener la longitud de la lista
                     print("La lista esta vacía")    
                 else:
-                    print("La lista tiene " + str(len(data)) + " elementos")
-                    print(data['2'])
+                    print("La lista tiene " + str(adt.size(data)) + " elementos")
+                    print(adt.getElement(data,1))
             elif int(inputs[0])==3: #opcion 3
                 column=input('Ingrese el tipo de información que desea consultar\n')
                 criteria=input('Ingrese el criterio de búsqueda\n')
@@ -218,7 +255,31 @@ def main():
             elif int(inputs[0])==4: #opcion 4
                 director = input('Ingrese el nombre del director\n')
                 counter, average = countElementsByCriteria(data,director)
-                print("Existen ",counter," peliculas buenas del director ", director, "con una puntuacion promedio de: ",average)
+                print("Existen ", counter, " peliculas buenas del director ", director, "con una puntuacion promedio de: ", average)
+            elif int(inputs[0]) == 5:
+                switch = True
+                while switch:
+                    printRanking()
+                    criteria = int(input('Seleccione una opción para continuar\n'))
+                    if (criteria <= 4) and (criteria > 0):
+                        switch = False
+                    else:
+                        print("Opcion no valida")
+                less = Comparation(categoria[(criteria-1) // 2])
+                
+                if criteria % 2 == 1:
+                    ranking = orderElementsByCriteria(data,less.upVal)
+                else:
+                    ranking = orderElementsByCriteria(data, less.downVal)
+                
+                top = 1
+                for element in ranking:
+                    print(f'\n{top}. {element["title"]} de {element["director_name"]} con {element[categoria[(criteria-1) // 2]]}')
+                    top += 1
+
+                del less
+                del ranking
+
             elif int(inputs[0])==0: #opcion 0, salir
                 sys.exit(0)
 
