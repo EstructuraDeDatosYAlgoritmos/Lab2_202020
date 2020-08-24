@@ -22,7 +22,7 @@
   Este módulo implementa una estructura de datos lineal, como un arreglo de apuntadores a 
   los nodos de la lista.
 """
-import config
+import DataStructures.config
 from Utils import error as error
 
 def newList (cmpfunction=None):

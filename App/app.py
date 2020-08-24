@@ -1,5 +1,5 @@
 """
- * Copyright 2020, Departamento de sistemas y Computación, Universidad de Los Andes
+ * Copyright 2020, Departamento de sistemas y Compputación, Universidad de Los Andes
  * 
  * Contribución de:
  *
@@ -27,12 +27,13 @@
   datos, contar elementos, y hacer búsquedas sobre una lista.
 """
 
-from DataStructures import arraylist as adt
-from App.comparation import Comparation
-from App.comparation import cmpfunction
-from Sorting.mergesort import mergesort
+
+
+import config as cf
 from time import process_time
-import App.config as cf
+import DataStructures.arraylist as adt
+import Sorting.mergesort as sort
+import App.comparation as comp
 import sys
 import csv
 
@@ -61,7 +62,7 @@ def loadCSVFile (data_link, data, sep=";"):
     temp = {}
     for link in data_link:
         try:
-            with open(link, encoding="utf-8") as csvfile:
+            with open(link, encoding="utf-8-sig") as csvfile:
                 spamreader = csv.DictReader(csvfile, dialect=dialect)
                 for row in spamreader:
                     
@@ -79,7 +80,6 @@ def loadCSVFile (data_link, data, sep=";"):
         except:
             data['elements'].clear()
             print("Se presento un error en la carga del archivo")
-    
     del temp
 
     t1_stop = process_time()  #tiempo final
@@ -155,10 +155,10 @@ def countElementsByCriteria(data, director):
                 counter += 1
                 average += vote
                 
-        t1_stop = process_time() #tiempo final
-        print("Tiempo de ejecución ", t1_stop - t1_start, " segundos")
         if average != 0:
             average /= counter
+        t1_stop = process_time() #tiempo final
+        print("Tiempo de ejecución ", t1_stop - t1_start, " segundos")
     
     return (counter,average)
 
@@ -167,10 +167,14 @@ def orderElementsByCriteria(data,less):
     if adt.size(data)==0:
         print("La lista esta vacía")
     else:
-        mergesort(data, less)
+        t1_start = process_time()
+        sort.mergesort(data, less)
         ranking = []
         for i in range(1,11):
             ranking.append(adt.getElement(data, i))
+
+        t1_stop = process_time() #tiempo final
+        print("Tiempo de ejecución ", t1_stop - t1_start, " segundos")
         return ranking
 
 def main():
@@ -181,7 +185,7 @@ def main():
     Args: None
     Return: None 
     """
-    data = adt.newList(cmpfunction)
+    data = adt.newList(comp.cmpfunction)
 
     data_link = [ #contiene los enlaces a los archivos .cvs
         "Data/themoviesdb/AllMoviesDetailsCleaned.csv",
@@ -223,7 +227,7 @@ def main():
                         switch = False
                     else:
                         print("Opcion no valida")
-                less = Comparation(categoria[(criteria-1) // 2])
+                less = comp.Comparation(categoria[(criteria-1) // 2])
                 
                 if criteria % 2 == 1:
                     ranking = orderElementsByCriteria(data,less.upVal)
